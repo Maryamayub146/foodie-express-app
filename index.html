@@ -1,0 +1,184 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Fast Food Store</title>
+
+    <!-- Link to external CSS -->
+    <link rel="stylesheet" href="static/style.CSS" />
+
+    <!-- SweetAlert2 CDN for stylish alerts -->
+    <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
+    <style>
+      html {
+        scroll-behavior: smooth;
+      }
+    </style>
+  </head>
+  <body>
+    <header class="main-header">
+      <div class="navbar">
+        <!-- Store Logo -->
+        <div class="logo">🍔 <span>Fast Food Store</span></div>
+
+        <!-- Centered Navigation Links -->
+        <nav class="nav-links" id="mobile-menu">
+          <a href="#"><h4>Home</h4></a>
+          <a href="#products"><h4>Food</h4></a>
+          <a href="#cart"><h4>Cart 🛒</h4></a>
+        </nav>
+
+        <!-- Dark Mode Toggle -->
+        <div class="toggle-container">
+          <label class="switch">
+            <input type="checkbox" id="modeToggle" />
+            <span class="slider round"></span>
+          </label>
+        </div>
+
+        <!-- Hamburger for Mobile -->
+        <div class="hamburger" onclick="toggleMenu()">☰</div>
+      </div>
+    </header>
+
+    <!-- <h1>🛍️ Welcome to Smart Shopping Store</h1> -->
+    <div class="search-bar">
+      <input
+        type="text"
+        id="searchInput"
+        placeholder="🔍 Search for food (e.g., Pizza, Burger)..."
+        onkeyup="filterProducts()"
+      />
+    </div>
+
+    <div id="products">
+      {% for product in products %}
+      <div class="product">
+        <img
+          src="{{ product.image }}"
+          alt="{{ product.title }}"
+          class="product-image"
+          onerror="this.onerror=null;
+              this.src='https://via.placeholder.com/200x150?text=No+Image';"
+        />
+
+        <h4>{{ product.title }}</h4>
+        <p>Price: Rs {{ product.price }}</p>
+        <button
+          class="btn"
+          onclick="addToCart({{ product.id }}, '{{ product.title }}', {{ product.price }})"
+        >
+          Add to Cart
+        </button>
+      </div>
+      {% endfor %}
+    </div>
+
+    <hr />
+
+    <h3>🛒 Your Cart</h3>
+    <ul id="cart-list"></ul>
+    <p>
+      <strong>Total: Rs<span id="total-price">0</span></strong>
+    </p>
+    <button class="btn" onclick="placeOrder()">Place Order</button>
+
+    <script>
+      const cart = [];
+
+      function addToCart(id, title, price) {
+        cart.push({ id, title, price });
+        updateCart();
+      }
+
+      function updateCart() {
+        const list = document.getElementById("cart-list");
+        const totalElement = document.getElementById("total-price");
+        list.innerHTML = "";
+        let total = 0;
+
+        cart.forEach((item) => {
+          const li = document.createElement("li");
+          li.textContent = `${item.title} - Rs${item.price}`;
+          list.appendChild(li);
+          total += item.price;
+        });
+
+        totalElement.textContent = total;
+      }
+      function placeOrder() {
+        if (cart.length === 0) {
+          Swal.fire({
+            icon: "warning",
+            title: "🛒 Cart is empty!",
+            text: "Please add some products before placing an order.",
+            confirmButtonColor: "#ffc107",
+          });
+          return;
+        }
+
+        fetch("/order", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ cart }),
+        })
+          .then((res) => res.json())
+          .then((data) => {
+            if (data.status === "success") {
+              Swal.fire({
+                icon: "success",
+                title: "🎉 Order Confirmed!",
+                text: data.message,
+                confirmButtonColor: "#28a745",
+              });
+              cart.length = 0;
+              updateCart();
+            } else {
+              Swal.fire({
+                icon: "error",
+                title: "❌ Failed!",
+                text: data.message,
+                confirmButtonColor: "#dc3545",
+              });
+            }
+          })
+          .catch((error) => {
+            console.error("Order error:", error);
+            Swal.fire({
+              icon: "error",
+              title: "❌ Failed!",
+              text: "Could not place order. Please try again.",
+              confirmButtonColor: "#dc3545",
+            });
+          });
+      }
+      function toggleMenu() {
+        const menu = document.getElementById("mobile-menu");
+        menu.classList.toggle("active");
+      }
+
+      function filterProducts() {
+        const input = document
+          .getElementById("searchInput")
+          .value.toLowerCase();
+        const products = document.querySelectorAll(".product");
+
+        products.forEach((product) => {
+          const title = product.querySelector("h4").textContent.toLowerCase();
+          if (title.includes(input)) {
+            product.style.display = "block";
+          } else {
+            product.style.display = "none";
+          }
+        });
+      }
+      // dark mood
+
+      const toggle = document.getElementById("modeToggle");
+      toggle.addEventListener("change", () => {
+        document.body.classList.toggle("dark-mode");
+      });
+    </script>
+  </body>
+</html>
